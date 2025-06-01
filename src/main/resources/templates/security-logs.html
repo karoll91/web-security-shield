@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="uz" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xavfsizlik Loglari - Web Security Shield</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link href="/css/style.css" rel="stylesheet">
+
+    <style>
+        .log-entry {
+            border-left: 4px solid #e9ecef;
+            transition: all 0.3s ease;
+        }
+
+        .log-entry.critical {
+            border-left-color: #dc3545;
+            background-color: rgba(220, 53, 69, 0.05);
+        }
+
+        .log-entry.high {
+            border-left-color: #fd7e14;
+            background-color: rgba(253, 126, 20, 0.05);
+        }
+
+        .log-entry.medium {
+            border-left-color: #ffc107;
+            background-color: rgba(255, 193, 7, 0.05);
+        }
+
+        .log-entry.low {
+            border-left-color: #198754;
+            background-color: rgba(25, 135, 84, 0.05);
+        }
+
+        .threat-badge {
+            font-size: 0.75rem;
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+
+        .filter-card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+            border: none;
+        }
+
+        .attack-payload {
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            background-color: #f8f9fa;
+            border-radius: 6px;
+            padding: 0.5rem;
+            border: 1px solid #dee2e6;
+            max-height: 100px;
+            overflow-y: auto;
+        }
+
+        .ip-link {
+            text-decoration: none;
+            color: #495057;
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+        }
+
+        .ip-link:hover {
+            color: #007bff;
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-lg-2 col-md-3 p-0">
+            <div class="sidebar p-3">
+                <!-- Logo -->
+                <div class="text-center mb-4">
+                    <i class="bi bi-shield-check display-4"></i>
+                    <h5 class="mt-2">Security Shield</h5>
+                </div>
+
+                <!-- User Info -->
+                <div class="text-center mb-4 p-3" style="background: rgba(255,255,255,0.1); border-radius: 10px;">
+                    <i class="bi bi-person-circle fs-3"></i>
+                    <div class="mt-2">
+                        <small>Xush kelibsiz!</small><br>
+                        <strong th:text="${currentUser.username}">Username</strong>
+                    </div>
+                </div>
+
+                <!-- Navigation -->
+                <nav class="nav flex-column">
+                    <a class="nav-link" href="/dashboard">
+                        <i class="bi bi-house-door me-2"></i>Dashboard
+                    </a>
+                    <a class="nav-link active" href="/security/logs">
+                        <i class="bi bi-file-text me-2"></i>Xavfsizlik Loglari
+                    </a>
+                    <a class="nav-link" href="/security/blocked-ips">
+                        <i class="bi bi-shield-x me-2"></i>Bloklangan IP lar
+                    </a>
+                    <a class="nav-link" href="/security/critical-attacks">
+                        <i class="bi bi-exclamation-triangle me-2"></i>Kritik Hujumlar
+                    </a>
+                    <a class="nav-link" href="/dashboard/profile">
+                        <i class="bi bi-person me-2"></i>Profil
+                    </a>
+                    <hr class="my-3" style="border-color: rgba(255,255,255,0.3);">
+                    <a class="nav-link" href="/logout">
+                        <i class="bi bi-box-arrow-right me-2"></i>Chiqish
+                    </a>
+                </nav>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="col-lg-10 col-md-9 p-4">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="mb-0">
+                        <i class="bi bi-file-text me-2"></i>Xavfsizlik Loglari
+                    </h2>
+                    <p class="text-muted mb-0">Barcha xavfsizlik hodisalari va hujumlar</p>
+                </div>
+                <div>
+                    <button class="btn btn-outline-primary me-2" onclick="refreshLogs()">
+                        <i class="bi bi-arrow-clockwise me-2"></i>Yangilash
+                    </button>
+                    <button class="btn btn-success" onclick="exportLogs()">
+                        <i class="bi bi-download me-2"></i>Export
+                    </button>
+                </div>
+            </div>
+
+            <!-- Filters -->
+            <div class="filter-card p-4 mb-4">
+                <form method="get" th:action="@{/security/logs}">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Hujum Turi</label>
+                            <select name="type" class="form-select">
+                                <option value="">Barchasi</option>
+                                <option th:each="threatType : ${threatTypes}"
+                                        th:value="${threatType.name()}"
+                                        th:text="${threatType.displayName}"
+                                        th:selected="${selectedType == threatType.name()}">
+                                    Threat Type
+                                </option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">IP Manzil</label>
+                            <input type="text"
+                                   name="ip"
+                                   class="form-control"
+                                   placeholder="192.168.1.1"
+                                   th:value="${selectedIP}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Vaqt Oralig'i</label>
+                            <select name="days" class="form-select">
+                                <option value="1" th:selected="${selectedDays == 1}">So'nggi 1 kun</option>
+                                <option value="7" th:selected="${selectedDays == 7}">So'nggi 7 kun</option>
+                                <option value="30" th:selected="${selectedDays == 30}">So'nggi 30 kun</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="bi bi-search me-2"></i>Filter
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Statistics Row -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-3" th:each="stat : ${threatTypeStats}">
+                    <div class="stat-card text-center">
+                        <div class="threat-badge bg-primary text-white mb-2" th:text="${stat.key.displayName}">
+                            Threat Type
+                        </div>
+                        <h4 class="mb-0" th:text="${stat.value}">0</h4>
+                        <small class="text-muted">Hodisalar</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Logs List -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="filter-card">
+                        <div class="p-3 border-bottom">
+                            <h5 class="mb-0">
+                                <i class="bi bi-list-ul me-2"></i>
+                                Hodisalar Ro'yxati
+                                <span class="badge bg-secondary ms-2" th:text="${#lists.size(logs)}">0</span>
+                            </h5>
+                        </div>
+
+                        <div class="logs-container" style="max-height: 600px; overflow-y: auto;">
+                            <div th:if="${#lists.isEmpty(logs)}" class="text-center p-5">
+                                <i class="bi bi-inbox display-1 text-muted"></i>
+                                <h5 class="text-muted mt-3">Hech qanday log topilmadi</h5>
+                                <p class="text-muted">Filter sozlamalarini o'zgartiring yoki kuting</p>
+                            </div>
+
+                            <div th:each="log : ${logs}"
+                                 class="log-entry p-4"
+                                 th:classappend="${log.severity.name().toLowerCase()}">
+
+                                <div class="row align-items-start">
+                                    <div class="col-md-8">
+                                        <!-- Threat Type va Severity -->
+                                        <div class="d-flex align-items-center mb-2">
+                                                <span class="threat-badge me-3"
+                                                      th:classappend="${log.severity.name() == 'CRITICAL'} ? 'bg-danger text-white' :
+                                                                     (${log.severity.name() == 'HIGH'} ? 'bg-warning text-dark' :
+                                                                     (${log.severity.name() == 'MEDIUM'} ? 'bg-info text-white' : 'bg-success text-white'))"
+                                                      th:text="${log.threatType.displayName}">
+                                                    Threat Type
+                                                </span>
+
+                                            <span class="badge me-2"
+                                                  th:classappend="${log.severity.name() == 'CRITICAL'} ? 'bg-danger' :
+                                                                     (${log.severity.name() == 'HIGH'} ? 'bg-warning' :
+                                                                     (${log.severity.name() == 'MEDIUM'} ? 'bg-info' : 'bg-success'))"
+                                                  th:text="${log.severity.displayName}">
+                                                    Severity
+                                                </span>
+
+                                            <span class="badge bg-secondary" th:if="${log.blocked}">
+                                                    <i class="bi bi-shield-x me-1"></i>Bloklandi
+                                                </span>
+                                        </div>
+
+                                        <!-- Description -->
+                                        <p class="mb-2" th:text="${log.description}">Log description</p>
+
+                                        <!-- Request Details -->
+                                        <div class="small text-muted mb-2">
+                                            <i class="bi bi-globe me-1"></i>
+                                            <span th:text="${log.requestMethod}">GET</span>
+                                            <span th:text="${log.requestUrl}">URL</span>
+                                        </div>
+
+                                        <!-- Attack Payload -->
+                                        <div th:if="${log.attackPayload}" class="mt-2">
+                                            <small class="text-muted fw-semibold">Hujum ma'lumotlari:</small>
+                                            <div class="attack-payload mt-1" th:text="${log.attackPayload}">
+                                                Attack payload content
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-4 text-end">
+                                        <!-- IP Address -->
+                                        <div class="mb-2">
+                                            <a th:href="@{/security/ip-details/{ip}(ip=${log.ipAddress})}"
+                                               class="ip-link">
+                                                <i class="bi bi-geo-alt me-1"></i>
+                                                <span th:text="${log.ipAddress}">IP Address</span>
+                                            </a>
+                                        </div>
+
+                                        <!-- Timestamp -->
+                                        <div class="small text-muted">
+                                            <i class="bi bi-clock me-1"></i>
+                                            <span th:text="${#temporals.format(log.timestamp, 'dd.MM.yyyy HH:mm:ss')}">
+                                                    Timestamp
+                                                </span>
+                                        </div>
+
+                                        <!-- User Agent -->
+                                        <div th:if="${log.userAgent}" class="small text-muted mt-1"
+                                             style="max-width: 200px; word-break: break-all;">
+                                            <i class="bi bi-phone me-1"></i>
+                                            <span th:text="${#strings.abbreviate(log.userAgent, 50)}">User Agent</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Custom JS -->
+<script src="/js/security.js"></script>
+
+<script>
+    // Auto refresh every 30 seconds
+    setInterval(refreshLogs, 30000);
+
+    function refreshLogs() {
+        location.reload();
+    }
+
+    function exportLogs() {
+        // Export functionality
+        const currentUrl = new URL(window.location);
+        currentUrl.searchParams.set('export', 'csv');
+        window.open(currentUrl.toString(), '_blank');
+    }
+
+    // Real-time log highlighting
+    document.addEventListener('DOMContentLoaded', function() {
+        const logEntries = document.querySelectorAll('.log-entry');
+        logEntries.forEach((entry, index) => {
+            setTimeout(() => {
+                entry.style.opacity = '0';
+                entry.style.transform = 'translateY(20px)';
+                entry.offsetHeight; // Trigger reflow
+                entry.style.transition = 'all 0.5s ease';
+                entry.style.opacity = '1';
+                entry.style.transform = 'translateY(0)';
+            }, index * 100);
+        });
+    });
+</script>
+</body>
+</html>

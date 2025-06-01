@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 50px;
+            background-color: #e8f5e8;
+        }
+        h1 { color: #28a745; }
+        .box {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+<div class="box">
+    <h1>✅ Test Muvaffaqiyatli!</h1>
+    <p th:text="${message}">Template engine ishlayapti!</p>
+    <p><strong>Vaqt:</strong> <span id="time"></span></p>
+    <a href="/dashboard">Dashboard ga o'tish</a>
+</div>
+
+<script>
+    document.getElementById('time').textContent = new Date().toLocaleString();
+    console.log('Test template loaded!');
+</script>
+</body>
+</html>

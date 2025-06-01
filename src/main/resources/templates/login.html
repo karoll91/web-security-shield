@@ -83,27 +83,35 @@
                 </div>
 
                 <!-- Xabarlar -->
-                <div th:if="${errorMessage}" class="alert alert-danger" role="alert">
+                <div th:if="${param.error}" class="alert alert-danger" role="alert">
                     <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                    <span th:text="${errorMessage}">Xato xabari</span>
+                    <span>Noto'g'ri username yoki parol!</span>
                 </div>
 
-                <div th:if="${successMessage}" class="alert alert-success" role="alert">
+                <div th:if="${param.logout}" class="alert alert-success" role="alert">
                     <i class="bi bi-check-circle-fill me-2"></i>
-                    <span th:text="${successMessage}">Muvaffaqiyat xabari</span>
+                    <span>Muvaffaqiyatli chiqildi!</span>
                 </div>
 
-                <!-- Login Form -->
-                <form th:action="@{/login}" method="post" th:object="${loginForm}">
+                <div th:if="${param.registered}" class="alert alert-success" role="alert">
+                    <i class="bi bi-check-circle-fill me-2"></i>
+                    <span>Muvaffaqiyatli ro'yxatdan o'tdingiz! Endi login qilishingiz mumkin.</span>
+                </div>
+
+                <!-- Login Form - CSRF TOKEN BILAN -->
+                <form th:action="@{/login}" method="post">
+                    <!-- CSRF token - Thymeleaf avtomatik qo'shadi -->
+
                     <div class="mb-3">
-                        <label for="login" class="form-label fw-semibold">
-                            <i class="bi bi-person-fill me-2"></i>Login yoki Email
+                        <label for="username" class="form-label fw-semibold">
+                            <i class="bi bi-person-fill me-2"></i>Username
                         </label>
                         <input type="text"
                                class="form-control"
-                               id="login"
-                               th:field="*{login}"
-                               placeholder="Username yoki email kiriting"
+                               id="username"
+                               name="username"
+                               placeholder="Username kiriting (admin)"
+                               value=""
                                required>
                     </div>
 
@@ -114,8 +122,9 @@
                         <input type="password"
                                class="form-control"
                                id="password"
-                               th:field="*{password}"
-                               placeholder="Parolni kiriting"
+                               name="password"
+                               placeholder="Parolni kiriting (admin123)"
+                               value=""
                                required>
                     </div>
 
@@ -134,6 +143,25 @@
                             Ro'yxatdan o'ting
                         </a>
                     </p>
+                </div>
+
+                <!-- Test ma'lumotlari -->
+                <div class="alert alert-info mt-3">
+                    <h6 class="fw-bold mb-2">
+                        <i class="bi bi-info-circle me-2"></i>Test Login Ma'lumotlari
+                    </h6>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <small><strong>Admin:</strong><br>
+                                Username: <code>admin</code><br>
+                                Password: <code>admin123</code></small>
+                        </div>
+                        <div class="col-6">
+                            <small><strong>Test:</strong><br>
+                                Username: <code>test</code><br>
+                                Password: <code>test123</code></small>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Security Features -->
@@ -183,5 +211,23 @@
 
 <!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    // Debug: Form submit da ma'lumotlarni tekshirish
+    document.querySelector('form').addEventListener('submit', function(e) {
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+
+        console.log('Form submit:');
+        console.log('Username:', username);
+        console.log('Password length:', password.length);
+
+        if (!username.trim() || !password.trim()) {
+            alert('Username va parol bo\'sh bo\'lmasligi kerak!');
+            e.preventDefault();
+            return false;
+        }
+    });
+</script>
 </body>
 </html>

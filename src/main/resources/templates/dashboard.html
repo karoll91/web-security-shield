@@ -4,315 +4,121 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Web Security Shield</title>
-
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-    <style>
-        body {
-            background-color: #f8f9fa;
-        }
-
-        .sidebar {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            color: white;
-        }
-
-        .sidebar .nav-link {
-            color: rgba(255, 255, 255, 0.8);
-            border-radius: 8px;
-            margin: 0.2rem 0;
-            transition: all 0.3s ease;
-        }
-
-        .sidebar .nav-link:hover,
-        .sidebar .nav-link.active {
-            background-color: rgba(255, 255, 255, 0.2);
-            color: white;
-            transform: translateX(5px);
-        }
-
-        .stat-card {
-            background: white;
-            border-radius: 15px;
-            padding: 1.5rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
-            border: none;
-            transition: all 0.3s ease;
-        }
-
-        .stat-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-        }
-
-        .stat-icon {
-            width: 60px;
-            height: 60px;
-            border-radius: 15px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            color: white;
-        }
-
-        .stat-icon.danger { background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%); }
-        .stat-icon.warning { background: linear-gradient(135deg, #feca57 0%, #ff9ff3 100%); }
-        .stat-icon.success { background: linear-gradient(135deg, #48dbfb 0%, #0abde3 100%); }
-        .stat-icon.info { background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%); }
-
-        .table-container {
-            background: white;
-            border-radius: 15px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
-        }
-
-        .chart-container {
-            background: white;
-            border-radius: 15px;
-            padding: 1.5rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
-        }
-
-        .threat-badge {
-            font-size: 0.75rem;
-            padding: 0.4rem 0.8rem;
-            border-radius: 20px;
-        }
-    </style>
 </head>
 <body>
 <div class="container-fluid">
     <div class="row">
-        <!-- Sidebar -->
-        <div class="col-lg-2 col-md-3 p-0">
-            <div class="sidebar p-3">
-                <!-- Logo -->
-                <div class="text-center mb-4">
-                    <i class="bi bi-shield-check display-4"></i>
-                    <h5 class="mt-2">Security Shield</h5>
-                </div>
-
-                <!-- User Info -->
-                <div class="text-center mb-4 p-3" style="background: rgba(255,255,255,0.1); border-radius: 10px;">
-                    <i class="bi bi-person-circle fs-3"></i>
-                    <div class="mt-2">
-                        <small>Xush kelibsiz!</small><br>
-                        <strong th:text="${currentUser.username}">Username</strong>
-                    </div>
-                </div>
-
-                <!-- Navigation -->
-                <nav class="nav flex-column">
-                    <a class="nav-link active" href="/dashboard">
-                        <i class="bi bi-house-door me-2"></i>Dashboard
-                    </a>
-                    <a class="nav-link" href="/security/logs">
-                        <i class="bi bi-file-text me-2"></i>Xavfsizlik Loglari
-                    </a>
-                    <a class="nav-link" href="/security/blocked-ips">
-                        <i class="bi bi-shield-x me-2"></i>Bloklangan IP lar
-                    </a>
-                    <a class="nav-link" href="/security/critical-attacks">
-                        <i class="bi bi-exclamation-triangle me-2"></i>Kritik Hujumlar
-                    </a>
-                    <a class="nav-link" href="/dashboard/profile">
-                        <i class="bi bi-person me-2"></i>Profil
-                    </a>
-                    <hr class="my-3" style="border-color: rgba(255,255,255,0.3);">
-                    <a class="nav-link" href="/logout">
-                        <i class="bi bi-box-arrow-right me-2"></i>Chiqish
-                    </a>
-                </nav>
+        <div class="col-12">
+            <!-- SIMPLE TEST HEADER -->
+            <div class="bg-primary text-white p-4 mb-4 rounded">
+                <h1><i class="bi bi-shield-check me-2"></i>Web Security Shield Dashboard</h1>
+                <p class="mb-0">Muvaffaqiyatli login!</p>
             </div>
-        </div>
 
-        <!-- Main Content -->
-        <div class="col-lg-10 col-md-9 p-4">
-            <!-- Header -->
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                    <h2 class="mb-0">Dashboard</h2>
-                    <p class="text-muted mb-0">Xavfsizlik tizimi monitoring</p>
+            <!-- USER INFO -->
+            <div class="alert alert-success">
+                <h4><i class="bi bi-person-check me-2"></i>Xush kelibsiz!</h4>
+                <p>Siz muvaffaqiyatli tizimga kirdingiz.</p>
+
+                <!-- User ma'lumotlari (agar mavjud bo'lsa) -->
+                <div th:if="${currentUser}">
+                    <strong>Username:</strong> <span th:text="${currentUser.username}">admin</span><br>
+                    <strong>Email:</strong> <span th:text="${currentUser.email}">admin@example.com</span><br>
+                    <strong>Status:</strong>
+                    <span class="badge bg-success" th:if="${currentUser.active}">Faol</span>
+                    <span class="badge bg-danger" th:unless="${currentUser.active}">Faolsiz</span>
                 </div>
-                <div class="text-end">
-                    <small class="text-muted">Oxirgi yangilanish:</small><br>
-                    <span id="lastUpdate" class="fw-semibold"></span>
+
+                <!-- Agar currentUser yo'q bo'lsa -->
+                <div th:unless="${currentUser}">
+                    <em>User ma'lumotlari yuklanmadi</em>
                 </div>
             </div>
 
-            <!-- Statistics Cards -->
-            <div class="row g-4 mb-4">
-                <div class="col-lg-3 col-md-6">
-                    <div class="stat-card">
-                        <div class="d-flex align-items-center">
-                            <div class="stat-icon danger">
-                                <i class="bi bi-exclamation-triangle"></i>
-                            </div>
-                            <div class="ms-3">
-                                <h3 class="mb-0" th:text="${dashboardStats.todayAttacks}">0</h3>
-                                <small class="text-muted">Bugungi Hujumlar</small>
-                            </div>
+            <!-- SIMPLE STATS (agar mavjud bo'lsa) -->
+            <div class="row g-3 mb-4" th:if="${dashboardStats}">
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h3 class="text-danger" th:text="${dashboardStats.todayAttacks}">0</h3>
+                            <small>Bugungi Hujumlar</small>
                         </div>
                     </div>
                 </div>
-
-                <div class="col-lg-3 col-md-6">
-                    <div class="stat-card">
-                        <div class="d-flex align-items-center">
-                            <div class="stat-icon warning">
-                                <i class="bi bi-shield-exclamation"></i>
-                            </div>
-                            <div class="ms-3">
-                                <h3 class="mb-0" th:text="${dashboardStats.criticalAttacks}">0</h3>
-                                <small class="text-muted">Kritik Hujumlar</small>
-                            </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h3 class="text-warning" th:text="${dashboardStats.criticalAttacks}">0</h3>
+                            <small>Kritik Hujumlar</small>
                         </div>
                     </div>
                 </div>
-
-                <div class="col-lg-3 col-md-6">
-                    <div class="stat-card">
-                        <div class="d-flex align-items-center">
-                            <div class="stat-icon info">
-                                <i class="bi bi-shield-x"></i>
-                            </div>
-                            <div class="ms-3">
-                                <h3 class="mb-0" th:text="${activeBlocks}">0</h3>
-                                <small class="text-muted">Bloklangan IP lar</small>
-                            </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h3 class="text-info" th:text="${activeBlocks}">0</h3>
+                            <small>Bloklangan IP</small>
                         </div>
                     </div>
                 </div>
-
-                <div class="col-lg-3 col-md-6">
-                    <div class="stat-card">
-                        <div class="d-flex align-items-center">
-                            <div class="stat-icon success">
-                                <i class="bi bi-shield-check"></i>
-                            </div>
-                            <div class="ms-3">
-                                <h3 class="mb-0" th:text="${#numbers.formatDecimal(dashboardStats.blockedPercentage, 1, 1)}">0.0</h3>
-                                <small class="text-muted">% Bloklangan</small>
-                            </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h3 class="text-success" th:text="${#numbers.formatDecimal(dashboardStats.blockedPercentage, 1, 1)}">0.0</h3>
+                            <small>% Bloklangan</small>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Charts Row -->
-            <div class="row g-4 mb-4">
-                <div class="col-lg-8">
-                    <div class="chart-container">
-                        <h5 class="mb-3">
-                            <i class="bi bi-bar-chart me-2"></i>Hujumlar Statistikasi (7 kun)
-                        </h5>
-                        <canvas id="attacksChart" height="100"></canvas>
-                    </div>
+            <!-- NAVIGATION LINKS -->
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <a href="/security/logs" class="card text-decoration-none h-100">
+                        <div class="card-body text-center">
+                            <i class="bi bi-file-text display-4 text-primary"></i>
+                            <h5 class="mt-2">Xavfsizlik Loglari</h5>
+                            <p class="text-muted">Barcha hodisalarni ko'ring</p>
+                        </div>
+                    </a>
                 </div>
-
-                <div class="col-lg-4">
-                    <div class="chart-container">
-                        <h5 class="mb-3">
-                            <i class="bi bi-pie-chart me-2"></i>Hujum Turlari
-                        </h5>
-                        <canvas id="threatTypesChart" height="200"></canvas>
-                    </div>
+                <div class="col-md-4">
+                    <a href="/security/blocked-ips" class="card text-decoration-none h-100">
+                        <div class="card-body text-center">
+                            <i class="bi bi-shield-x display-4 text-danger"></i>
+                            <h5 class="mt-2">Bloklangan IP lar</h5>
+                            <p class="text-muted">IP bloklarni boshqaring</p>
+                        </div>
+                    </a>
+                </div>
+                <div class="col-md-4">
+                    <a href="/dashboard/profile" class="card text-decoration-none h-100">
+                        <div class="card-body text-center">
+                            <i class="bi bi-person display-4 text-success"></i>
+                            <h5 class="mt-2">Profil</h5>
+                            <p class="text-muted">Hisob sozlamalari</p>
+                        </div>
+                    </a>
                 </div>
             </div>
 
-            <!-- Recent Activity -->
-            <div class="row g-4">
-                <div class="col-lg-6">
-                    <div class="table-container">
-                        <div class="p-3 border-bottom">
-                            <h5 class="mb-0">
-                                <i class="bi bi-clock-history me-2"></i>So'nggi Hodisalar
-                            </h5>
-                        </div>
-                        <div class="table-responsive">
-                            <table class="table table-hover mb-0">
-                                <thead class="table-light">
-                                <tr>
-                                    <th>Vaqt</th>
-                                    <th>Turi</th>
-                                    <th>IP</th>
-                                    <th>Status</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                <tr th:each="log : ${recentLogs}" th:if="${recentLogs != null}">
-                                    <td>
-                                        <small th:text="${#temporals.format(log.timestamp, 'HH:mm')}">--:--</small>
-                                    </td>
-                                    <td>
-                                                <span class="threat-badge bg-danger text-white"
-                                                      th:if="${log.threatType.name() == 'XSS_ATTACK'}">XSS</span>
-                                        <span class="threat-badge bg-warning text-dark"
-                                              th:if="${log.threatType.name() == 'SQL_INJECTION'}">SQL</span>
-                                        <span class="threat-badge bg-info text-white"
-                                              th:if="${log.threatType.name() == 'RATE_LIMIT_EXCEEDED'}">Rate</span>
-                                        <span class="threat-badge bg-secondary text-white"
-                                              th:unless="${log.threatType.name() == 'XSS_ATTACK' or log.threatType.name() == 'SQL_INJECTION' or log.threatType.name() == 'RATE_LIMIT_EXCEEDED'}"
-                                              th:text="${log.threatType.name()}">Other</span>
-                                    </td>
-                                    <td>
-                                        <code th:text="${log.ipAddress}">0.0.0.0</code>
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-danger" th:if="${log.blocked}">Bloklandi</span>
-                                        <span class="badge bg-warning" th:unless="${log.blocked}">Kuzatildi</span>
-                                    </td>
-                                </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
+            <!-- LOGOUT -->
+            <div class="text-center mt-4">
+                <a href="/logout" class="btn btn-outline-danger">
+                    <i class="bi bi-box-arrow-right me-2"></i>Tizimdan chiqish
+                </a>
+            </div>
 
-                <div class="col-lg-6">
-                    <div class="table-container">
-                        <div class="p-3 border-bottom">
-                            <h5 class="mb-0">
-                                <i class="bi bi-geo-alt me-2"></i>Eng Xavfli IP lar
-                            </h5>
-                        </div>
-                        <div class="table-responsive">
-                            <table class="table table-hover mb-0">
-                                <thead class="table-light">
-                                <tr>
-                                    <th>IP Manzil</th>
-                                    <th>Hujumlar</th>
-                                    <th>Status</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                <tr th:each="ip : ${topAttackingIPs}" th:if="${topAttackingIPs != null}">
-                                    <td>
-                                        <code th:text="${ip.ipAddress}">0.0.0.0</code>
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-danger" th:text="${ip.attackCount}">0</span>
-                                    </td>
-                                    <td>
-                                        <a th:href="@{/security/ip-details/{ip}(ip=${ip.ipAddress})}"
-                                           class="btn btn-sm btn-outline-primary">
-                                            <i class="bi bi-eye"></i>
-                                        </a>
-                                    </td>
-                                </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
+            <!-- DEBUG INFO -->
+            <div class="mt-4 p-3 bg-light rounded">
+                <h6>Debug Ma'lumotlari:</h6>
+                <p><strong>Template:</strong> dashboard.html</p>
+                <p><strong>Controller:</strong> DashboardController</p>
+                <p><strong>Time:</strong> <span id="currentTime"></span></p>
             </div>
         </div>
     </div>
@@ -320,66 +126,15 @@
 
 <!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
 <script>
-    // Vaqtni yangilash
-    function updateTime() {
-        const now = new Date();
-        document.getElementById('lastUpdate').textContent = now.toLocaleTimeString('uz-UZ');
-    }
+    // Vaqtni ko'rsatish
+    document.getElementById('currentTime').textContent = new Date().toLocaleString();
 
-    updateTime();
-    setInterval(updateTime, 1000);
-
-    // Kunlik hujumlar chart
-    const dailyData = /*[[${dailyStats}]]*/ [];
-    const attacksCtx = document.getElementById('attacksChart').getContext('2d');
-    new Chart(attacksCtx, {
-        type: 'line',
-        data: {
-            labels: dailyData.map(d => d.date),
-            datasets: [{
-                label: 'Hujumlar',
-                data: dailyData.map(d => d.attackCount),
-                borderColor: '#667eea',
-                backgroundColor: 'rgba(102, 126, 234, 0.1)',
-                tension: 0.4,
-                fill: true
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: {
-                    beginAtZero: true
-                }
-            }
-        }
-    });
-
-    // Hujum turlari chart
-    const threatData = /*[[${threatTypeStats}]]*/ {};
-    const threatCtx = document.getElementById('threatTypesChart').getContext('2d');
-    new Chart(threatCtx, {
-        type: 'doughnut',
-        data: {
-            labels: Object.keys(threatData),
-            datasets: [{
-                data: Object.values(threatData),
-                backgroundColor: [
-                    '#ff6b6b',
-                    '#feca57',
-                    '#48dbfb',
-                    '#ff9ff3',
-                    '#54a0ff'
-                ]
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false
-        }
+    // Console ga debug ma'lumot
+    console.log('Dashboard loaded successfully!');
+    console.log('User:', {
+        username: '[[${currentUser?.username}]]',
+        email: '[[${currentUser?.email}]]'
     });
 </script>
 </body>

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .nav-button {
+            display: inline-block;
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 5px;
+        }
+        .nav-button:hover {
+            background-color: #0056b3;
+            color: white;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+<h1>🎉 Web Security Shield - Test Dashboard</h1>
+
+<div class="success">
+    <h2>✅ Muvaffaqiyat!</h2>
+    <p>Siz tizimga muvaffaqiyatli kirdingiz!</p>
+</div>
+
+<div class="info">
+    <h3>📊 Ma'lumotlar:</h3>
+    <p><strong>Message:</strong> <span th:text="${message}">Default message</span></p>
+    <p><strong>Username:</strong> <span th:text="${username}">Unknown</span></p>
+    <p><strong>Authorities:</strong> <span th:text="${authorities}">None</span></p>
+    <p><strong>Vaqt:</strong> <span th:text="${timestamp}">Now</span></p>
+</div>
+
+<div class="info">
+    <h3>🔗 Sahifalar:</h3>
+    <a href="/security/logs" class="nav-button">Xavfsizlik Loglari</a>
+    <a href="/security/blocked-ips" class="nav-button">Bloklangan IP lar</a>
+    <a href="/dashboard/profile" class="nav-button">Profil</a>
+    <a href="/logout" class="nav-button" style="background-color: #dc3545;">Chiqish</a>
+</div>
+
+<div class="info">
+    <h3>🧪 Debug:</h3>
+    <p>Template: <code>test-dashboard.html</code></p>
+    <p>Controller: <code>TestController</code></p>
+    <p>Mapping: <code>/dashboard</code></p>
+</div>
+
+<script>
+    console.log('Test dashboard loaded successfully!');
+    alert('Test Dashboard ishlayapti! ✅');
+</script>
+</body>
+</html>

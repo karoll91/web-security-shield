@@ -16,7 +16,7 @@ import uz.edu.security.websecurityshield.repository.UserRepository;
 import java.time.LocalDateTime;
 
 /**
- * Dastur ishga tushganda test ma'lumotlarini yaratuvchi klass - DEBUG VERSION
+ * DEBUG VERSION - Password encoding bilan muammolarni topish
  */
 @Component
 public class DataInitializer implements CommandLineRunner {
@@ -37,27 +37,26 @@ public class DataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        logger.info("🚀 DataInitializer ishga tushdi!");
-        logger.info("🚀 Ma'lumotlar bazasini boshlang'ich ma'lumotlar bilan to'ldirish...");
+        logger.info("🚀 ==============================================");
+        logger.info("🚀 DataInitializer DEBUG VERSION");
+        logger.info("🚀 ==============================================");
 
         try {
-            // Repository larni tekshirish
-            logger.info("📊 Repositories tekshirish:");
-            logger.info("  - UserRepository: {}", userRepository != null ? "OK" : "NULL");
-            logger.info("  - SecurityLogRepository: {}", securityLogRepository != null ? "OK" : "NULL");
-            logger.info("  - BlockedIPRepository: {}", blockedIPRepository != null ? "OK" : "NULL");
-            logger.info("  - PasswordEncoder: {}", passwordEncoder != null ? "OK" : "NULL");
+            // Password encoder test
+            testPasswordEncoder();
 
-            // User count tekshirish
-            long userCount = userRepository.count();
-            logger.info("📊 Mavjud foydalanuvchilar soni: {}", userCount);
+            // Repositories test
+            testRepositories();
 
+            // Users yaratish
             createTestUsers();
+
+            // Other data
             createSampleSecurityLogs();
             createSampleBlockedIPs();
 
-            logger.info("✅ Test ma'lumotlari muvaffaqiyatli yaratildi!");
-            printLoginInstructions();
+            logger.info("✅ DataInitializer muvaffaqiyatli tugadi!");
+            printFinalStats();
 
         } catch (Exception e) {
             logger.error("❌ DataInitializer da xatolik: ", e);
@@ -65,164 +64,192 @@ public class DataInitializer implements CommandLineRunner {
         }
     }
 
-    /**
-     * Test foydalanuvchilarini yaratish
-     */
+    private void testPasswordEncoder() {
+        logger.info("🔐 PasswordEncoder testlari:");
+
+        String rawPassword = "admin123";
+        String encodedPassword = passwordEncoder.encode(rawPassword);
+        boolean matches = passwordEncoder.matches(rawPassword, encodedPassword);
+
+        logger.info("   - Raw password: '{}'", rawPassword);
+        logger.info("   - Encoded password: '{}'", encodedPassword);
+        logger.info("   - Matches test: {}", matches);
+
+        if (!matches) {
+            logger.error("❌ CRITICAL: PasswordEncoder ishlamayapti!");
+            throw new RuntimeException("PasswordEncoder failed");
+        }
+
+        logger.info("✅ PasswordEncoder ishlayapti");
+    }
+
+    private void testRepositories() {
+        logger.info("📊 Repository testlari:");
+        logger.info("   - UserRepository: {}", userRepository != null ? "OK" : "NULL");
+        logger.info("   - SecurityLogRepository: {}", securityLogRepository != null ? "OK" : "NULL");
+        logger.info("   - BlockedIPRepository: {}", blockedIPRepository != null ? "OK" : "NULL");
+        logger.info("   - PasswordEncoder: {}", passwordEncoder != null ? "OK" : "NULL");
+
+        long userCount = userRepository.count();
+        logger.info("   - Mavjud userlar soni: {}", userCount);
+    }
+
     private void createTestUsers() {
-        logger.info("👤 Test foydalanuvchilarini yaratish...");
+        logger.info("👤 Test userlarini yaratish...");
+
+        // Admin user
+        createUserIfNotExists("admin", "admin@security.uz", "admin123");
+
+        // Test user
+        createUserIfNotExists("test", "test@security.uz", "test123");
+
+        // Test qilish uchun qo'shimcha userlar
+        createUserIfNotExists("user1", "user1@test.com", "password123");
+        createUserIfNotExists("demo", "demo@test.com", "demo123");
+    }
+
+    private void createUserIfNotExists(String username, String email, String rawPassword) {
+        logger.info("🔍 User yaratish: username='{}', email='{}'", username, email);
+
+        boolean existsByUsername = userRepository.existsByUsername(username);
+        boolean existsByEmail = userRepository.existsByEmail(email);
+
+        logger.info("   - Username '{}' mavjudmi: {}", username, existsByUsername);
+        logger.info("   - Email '{}' mavjudmi: {}", email, existsByEmail);
+
+        if (existsByUsername || existsByEmail) {
+            logger.info("   - User allaqachon mavjud, o'tkazib yuborish");
+            return;
+        }
 
         try {
-            // Admin foydalanuvchisini yaratish
-            boolean adminExists = userRepository.existsByUsername("admin");
-            logger.info("🔍 Admin mavjudmi: {}", adminExists);
+            // Password encode qilish
+            String encodedPassword = passwordEncoder.encode(rawPassword);
+            logger.info("   - Raw password: '{}'", rawPassword);
+            logger.info("   - Encoded password: '{}'", encodedPassword);
 
-            if (!adminExists) {
-                User admin = new User();
-                admin.setUsername("admin");
-                admin.setEmail("admin@security.uz");
-                admin.setPassword(passwordEncoder.encode("admin123"));
-                admin.setActive(true);
-                admin.setCreatedAt(LocalDateTime.now());
+            // Encoding testlari
+            boolean encodeTest = passwordEncoder.matches(rawPassword, encodedPassword);
+            logger.info("   - Encode test: {}", encodeTest);
 
-                User savedAdmin = userRepository.save(admin);
-                logger.info("✅ Admin foydalanuvchisi yaratildi: admin / admin123 (ID: {})", savedAdmin.getId());
-            } else {
-                logger.info("ℹ️ Admin foydalanuvchisi allaqachon mavjud");
+            if (!encodeTest) {
+                logger.error("❌ Password encoding muvaffaqiyatsiz!");
+                throw new RuntimeException("Password encoding failed for " + username);
             }
 
-            // Test foydalanuvchisini yaratish
-            boolean testExists = userRepository.existsByUsername("test");
-            logger.info("🔍 Test user mavjudmi: {}", testExists);
+            // User yaratish
+            User user = new User();
+            user.setUsername(username);
+            user.setEmail(email);
+            user.setPassword(encodedPassword);
+            user.setActive(true);
+            user.setCreatedAt(LocalDateTime.now());
 
-            if (!testExists) {
-                User testUser = new User();
-                testUser.setUsername("test");
-                testUser.setEmail("test@security.uz");
-                testUser.setPassword(passwordEncoder.encode("test123"));
-                testUser.setActive(true);
-                testUser.setCreatedAt(LocalDateTime.now());
+            User savedUser = userRepository.save(user);
+            logger.info("✅ User yaratildi: ID={}, username='{}', email='{}'",
+                    savedUser.getId(), savedUser.getUsername(), savedUser.getEmail());
 
-                User savedTest = userRepository.save(testUser);
-                logger.info("✅ Test foydalanuvchisi yaratildi: test / test123 (ID: {})", savedTest.getId());
-            } else {
-                logger.info("ℹ️ Test foydalanuvchisi allaqachon mavjud");
+            // Qayta o'qish va tekshirish
+            User retrievedUser = userRepository.findById(savedUser.getId()).orElse(null);
+            if (retrievedUser != null) {
+                logger.info("   - Database dan o'qildi: username='{}', password='{}'",
+                        retrievedUser.getUsername(), retrievedUser.getPassword());
+
+                // Password test
+                boolean passwordTest = passwordEncoder.matches(rawPassword, retrievedUser.getPassword());
+                logger.info("   - Password test (database dan): {}", passwordTest);
+
+                if (!passwordTest) {
+                    logger.error("❌ CRITICAL: Database ga saqlangan password noto'g'ri!");
+                }
             }
-
-            // Yaratilgan foydalanuvchilarni tekshirish
-            long finalUserCount = userRepository.count();
-            logger.info("📊 Jami foydalanuvchilar soni: {}", finalUserCount);
-
-            // Barcha foydalanuvchilarni ko'rsatish
-            userRepository.findAll().forEach(user -> {
-                logger.info("👤 Foydalanuvchi: {} ({})", user.getUsername(), user.getEmail());
-            });
 
         } catch (Exception e) {
-            logger.error("❌ Test foydalanuvchilarini yaratishda xatolik: ", e);
+            logger.error("❌ User yaratishda xatolik: ", e);
             throw e;
         }
     }
 
-    /**
-     * Namuna xavfsizlik loglarini yaratish
-     */
     private void createSampleSecurityLogs() {
         logger.info("📋 Namuna xavfsizlik loglarini yaratish...");
 
-        try {
-            if (securityLogRepository.count() == 0) {
-                // XSS hujumi
-                SecurityLog xssLog = new SecurityLog(
-                        SecurityLog.ThreatType.XSS_ATTACK,
-                        "203.0.113.10",
-                        "XSS hujumi aniqlandi"
-                );
-                xssLog.setRequestUrl("/search?q=<script>alert('xss')</script>");
-                xssLog.setRequestMethod("GET");
-                xssLog.setAttackPayload("<script>alert('xss')</script>");
-                xssLog.setBlocked(true);
-                xssLog.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
-                securityLogRepository.save(xssLog);
+        if (securityLogRepository.count() == 0) {
+            // XSS hujumi
+            SecurityLog xssLog = new SecurityLog(
+                    SecurityLog.ThreatType.XSS_ATTACK,
+                    "203.0.113.10",
+                    "XSS hujumi aniqlandi"
+            );
+            xssLog.setRequestUrl("/search?q=<script>alert('xss')</script>");
+            xssLog.setRequestMethod("GET");
+            xssLog.setAttackPayload("<script>alert('xss')</script>");
+            xssLog.setBlocked(true);
+            xssLog.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
+            securityLogRepository.save(xssLog);
 
-                // SQL Injection hujumi
-                SecurityLog sqlLog = new SecurityLog(
-                        SecurityLog.ThreatType.SQL_INJECTION,
-                        "203.0.113.20",
-                        "SQL Injection hujumi aniqlandi"
-                );
-                sqlLog.setRequestUrl("/user?id=1' OR '1'='1");
-                sqlLog.setRequestMethod("GET");
-                sqlLog.setAttackPayload("1' OR '1'='1");
-                sqlLog.setBlocked(true);
-                sqlLog.setUserAgent("sqlmap/1.0");
-                securityLogRepository.save(sqlLog);
+            // SQL Injection hujumi
+            SecurityLog sqlLog = new SecurityLog(
+                    SecurityLog.ThreatType.SQL_INJECTION,
+                    "203.0.113.20",
+                    "SQL Injection hujumi aniqlandi"
+            );
+            sqlLog.setRequestUrl("/user?id=1' OR '1'='1");
+            sqlLog.setRequestMethod("GET");
+            sqlLog.setAttackPayload("1' OR '1'='1");
+            sqlLog.setBlocked(true);
+            sqlLog.setUserAgent("sqlmap/1.0");
+            securityLogRepository.save(sqlLog);
 
-                logger.info("✅ {} ta namuna xavfsizlik logi yaratildi", 2);
-            } else {
-                logger.info("ℹ️ Xavfsizlik loglari allaqachon mavjud");
-            }
-        } catch (Exception e) {
-            logger.error("❌ Xavfsizlik loglarini yaratishda xatolik: ", e);
+            logger.info("✅ {} ta namuna xavfsizlik logi yaratildi", 2);
         }
     }
 
-    /**
-     * Namuna bloklangan IP larni yaratish
-     */
     private void createSampleBlockedIPs() {
         logger.info("🚫 Namuna bloklangan IP larni yaratish...");
 
-        try {
-            if (blockedIPRepository.count() == 0) {
-                // Doimiy bloklangan IP
-                BlockedIP permanentBlock = new BlockedIP(
-                        "203.0.113.10",
-                        "Ko'p marta XSS hujumi amalga oshirgan",
-                        BlockedIP.BlockType.AUTO_ATTACK
-                );
-                permanentBlock.setPermanent(true);
-                permanentBlock.setBlockCount(5);
-                blockedIPRepository.save(permanentBlock);
+        if (blockedIPRepository.count() == 0) {
+            BlockedIP permanentBlock = new BlockedIP(
+                    "203.0.113.10",
+                    "Ko'p marta XSS hujumi amalga oshirgan",
+                    BlockedIP.BlockType.AUTO_ATTACK
+            );
+            permanentBlock.setPermanent(true);
+            permanentBlock.setBlockCount(5);
+            blockedIPRepository.save(permanentBlock);
 
-                logger.info("✅ {} ta namuna bloklangan IP yaratildi", 1);
-            } else {
-                logger.info("ℹ️ Bloklangan IP lar allaqachon mavjud");
-            }
-        } catch (Exception e) {
-            logger.error("❌ Bloklangan IP larni yaratishda xatolik: ", e);
+            logger.info("✅ {} ta namuna bloklangan IP yaratildi", 1);
         }
     }
 
-    /**
-     * Login ma'lumotlarini ko'rsatish
-     */
-    private void printLoginInstructions() {
-        logger.info("");
-        logger.info("🔐 LOGIN MA'LUMOTLARI:");
-        logger.info("=================================");
-        logger.info("URL: http://localhost:8080");
-        logger.info("");
-        logger.info("Admin foydalanuvchi:");
-        logger.info("  Username: admin");
-        logger.info("  Password: admin123");
-        logger.info("");
-        logger.info("Test foydalanuvchi:");
-        logger.info("  Username: test");
-        logger.info("  Password: test123");
-        logger.info("");
-        logger.info("H2 Database Console:");
-        logger.info("  URL: http://localhost:8080/h2-console");
-        logger.info("  JDBC URL: jdbc:h2:mem:security_db");
-        logger.info("  Username: sa");
-        logger.info("  Password: (bo'sh)");
-        logger.info("=================================");
-        logger.info("");
+    private void printFinalStats() {
+        logger.info("🔍 ==============================================");
+        logger.info("🔍 FINAL STATISTICS");
+        logger.info("🔍 ==============================================");
 
-        // Qo'shimcha debug ma'lumot
-        logger.info("🔧 DEBUG MA'LUMOTLARI:");
-        logger.info("  - Jami users: {}", userRepository.count());
-        logger.info("  - Jami logs: {}", securityLogRepository.count());
-        logger.info("  - Jami blocked IPs: {}", blockedIPRepository.count());
-        logger.info("=================================");
+        long totalUsers = userRepository.count();
+        logger.info("📊 Jami userlar: {}", totalUsers);
+
+        // Barcha userlarni ko'rsatish
+        userRepository.findAll().forEach(user -> {
+            logger.info("👤 User: ID={}, username='{}', email='{}', active={}",
+                    user.getId(), user.getUsername(), user.getEmail(), user.isActive());
+            logger.info("    Password hash: '{}'", user.getPassword());
+
+            // Password test
+            boolean adminTest = passwordEncoder.matches("admin123", user.getPassword());
+            boolean testTest = passwordEncoder.matches("test123", user.getPassword());
+            logger.info("    admin123 test: {}", adminTest);
+            logger.info("    test123 test: {}", testTest);
+        });
+
+        logger.info("📊 Jami logs: {}", securityLogRepository.count());
+        logger.info("📊 Jami blocked IPs: {}", blockedIPRepository.count());
+
+        logger.info("🔍 ==============================================");
+        logger.info("🔐 LOGIN MA'LUMOTLARI:");
+        logger.info("🔐 URL: http://localhost:8080/login");
+        logger.info("🔐 admin / admin123");
+        logger.info("🔐 test / test123");
+        logger.info("🔍 ==============================================");
     }
 }

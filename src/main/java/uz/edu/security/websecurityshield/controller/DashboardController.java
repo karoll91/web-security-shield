@@ -1,7 +1,12 @@
 package uz.edu.security.websecurityshield.controller;
 
 import jakarta.servlet.http.HttpSession;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,11 +20,13 @@ import uz.edu.security.websecurityshield.repository.BlockedIPRepository;
 import java.time.LocalDateTime;
 
 /**
- * Asosiy Dashboard Controller
+ * DEBUG VERSION - Dashboard Controller
  */
 @Controller
 @RequestMapping("/dashboard")
 public class DashboardController {
+
+    private static final Logger logger = LoggerFactory.getLogger(DashboardController.class);
 
     @Autowired
     private LoggingService loggingService;
@@ -34,130 +41,123 @@ public class DashboardController {
     private BlockedIPRepository blockedIPRepository;
 
     /**
-     * Dashboard asosiy sahifasi
+     * Dashboard asosiy sahifasi - DEBUG
      */
     @GetMapping
     public String dashboard(HttpSession session, Model model) {
-        User currentUser = getCurrentUser(session);
+        logger.info("🏠 ==============================================");
+        logger.info("🏠 DASHBOARD CONTROLLER CALLED");
+        logger.info("🏠 ==============================================");
+
+        // Authentication context tekshirish
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        logger.info("✅ Authentication object: {}", auth != null ? "EXISTS" : "NULL");
+
+        if (auth != null) {
+            logger.info("✅ Authentication details:");
+            logger.info("   - Principal: {}", auth.getPrincipal().getClass().getSimpleName());
+            logger.info("   - Authenticated: {}", auth.isAuthenticated());
+            logger.info("   - Authorities: {}", auth.getAuthorities());
+
+            if (auth.getPrincipal() instanceof UserDetails) {
+                UserDetails userDetails = (UserDetails) auth.getPrincipal();
+                logger.info("   - Username: '{}'", userDetails.getUsername());
+            }
+        }
+
+        // Session tekshirish
+        logger.info("📊 Session ma'lumotlari:");
+        logger.info("   - Session ID: {}", session.getId());
+        logger.info("   - Session creation time: {}", session.getCreationTime());
+        logger.info("   - Session last accessed: {}", session.getLastAccessedTime());
+
+        // Current user olish
+        User currentUser = getCurrentUser(session, auth);
         if (currentUser == null) {
+            logger.warn("❌ Current user NULL - login ga redirect");
             return "redirect:/login";
         }
 
-        // Dashboard statistikasini olish
-        LoggingService.DashboardStats dashboardStats = loggingService.getDashboardStats();
-        SecurityService.SecurityStats securityStats = securityService.getSecurityStats();
-        UserService.UserStats userStats = userService.getUserStats();
+        logger.info("✅ Current user: '{}'", currentUser.getUsername());
 
-        // Model ga ma'lumotlar qo'shish
-        model.addAttribute("currentUser", currentUser);
-        model.addAttribute("dashboardStats", dashboardStats);
-        model.addAttribute("securityStats", securityStats);
-        model.addAttribute("userStats", userStats);
+        try {
+            // Model ma'lumotlarini qo'shish
+            model.addAttribute("currentUser", currentUser);
 
-        // So'nggi hodisalar
-        model.addAttribute("recentLogs", loggingService.getRecentLogs(10));
-        model.addAttribute("criticalAttacks", loggingService.getCriticalAttacks(1));
-        model.addAttribute("topAttackingIPs", loggingService.getTopAttackingIPs(7, 5));
+            // Dashboard statistikasini olish
+            logger.info("📊 Dashboard statistikasini olish...");
 
-        // Hujum turlari statistikasi
-        model.addAttribute("threatTypeStats", loggingService.getThreatTypeStatistics(7));
+            LoggingService.DashboardStats dashboardStats = loggingService.getDashboardStats();
+            SecurityService.SecurityStats securityStats = securityService.getSecurityStats();
+            UserService.UserStats userStats = userService.getUserStats();
 
-        // Kunlik statistika (so'nggi 7 kun)
-        model.addAttribute("dailyStats", loggingService.getDailyAttackStatistics(7));
+            model.addAttribute("dashboardStats", dashboardStats);
+            model.addAttribute("securityStats", securityStats);
+            model.addAttribute("userStats", userStats);
 
-        // Faol bloklangan IP lar soni
-        long activeBlocks = blockedIPRepository.countActiveBlocks(LocalDateTime.now());
-        model.addAttribute("activeBlocks", activeBlocks);
+            // So'nggi hodisalar
+            model.addAttribute("recentLogs", loggingService.getRecentLogs(10));
+            model.addAttribute("criticalAttacks", loggingService.getCriticalAttacks(1));
+            model.addAttribute("topAttackingIPs", loggingService.getTopAttackingIPs(7, 5));
 
-        return "dashboard";
+            // Hujum turlari statistikasi
+            model.addAttribute("threatTypeStats", loggingService.getThreatTypeStatistics(7));
+
+            // Kunlik statistika (so'nggi 7 kun)
+            model.addAttribute("dailyStats", loggingService.getDailyAttackStatistics(7));
+
+            // Faol bloklangan IP lar soni
+            long activeBlocks = blockedIPRepository.countActiveBlocks(LocalDateTime.now());
+            model.addAttribute("activeBlocks", activeBlocks);
+
+            logger.info("✅ Model ma'lumotlari qo'shildi");
+            logger.info("🏠 ==============================================");
+            logger.info("🏠 DASHBOARD TEMPLATE 'dashboard' GA REDIRECT");
+            logger.info("🏠 ==============================================");
+
+            return "dashboard";
+
+        } catch (Exception e) {
+            logger.error("❌ Dashboard da xatolik: ", e);
+            model.addAttribute("errorMessage", "Dashboard yuklanmadi: " + e.getMessage());
+            return "error";
+        }
     }
 
     /**
-     * Haqida sahifasi
+     * Current user olish (session yoki authentication dan)
      */
-    @GetMapping("/about")
-    public String about(HttpSession session, Model model) {
-        User currentUser = getCurrentUser(session);
-        if (currentUser == null) {
-            return "redirect:/login";
+    private User getCurrentUser(HttpSession session, Authentication auth) {
+        logger.info("🔍 Current user ni olish...");
+
+        // Session dan olishga harakat
+        User sessionUser = (User) session.getAttribute("currentUser");
+        if (sessionUser != null) {
+            logger.info("✅ User session dan olindi: '{}'", sessionUser.getUsername());
+            return sessionUser;
         }
 
-        model.addAttribute("currentUser", currentUser);
+        // Authentication dan olishga harakat
+        if (auth != null && auth.getPrincipal() instanceof UserDetails) {
+            UserDetails userDetails = (UserDetails) auth.getPrincipal();
+            String username = userDetails.getUsername();
+            logger.info("🔍 Authentication dan username: '{}'", username);
 
-        // Tizim ma'lumotlari
-        model.addAttribute("systemInfo", new SystemInfo());
-
-        return "about";
-    }
-
-    /**
-     * Profil sahifasi
-     */
-    @GetMapping("/profile")
-    public String profile(HttpSession session, Model model) {
-        User currentUser = getCurrentUser(session);
-        if (currentUser == null) {
-            return "redirect:/login";
+            // Database dan user olish
+            return userService.findByUsername(username).orElse(null);
         }
 
-        model.addAttribute("currentUser", currentUser);
-
-        // Foydalanuvchi statistikasi
-        model.addAttribute("userStats", userService.getUserStats());
-
-        return "profile";
+        logger.warn("❌ Current user topilmadi");
+        return null;
     }
 
     /**
-     * Yordam sahifasi
+     * Test mapping - oddiy sahifa
      */
-    @GetMapping("/help")
-    public String help(HttpSession session, Model model) {
-        User currentUser = getCurrentUser(session);
-        if (currentUser == null) {
-            return "redirect:/login";
-        }
-
-        model.addAttribute("currentUser", currentUser);
-        return "help";
-    }
-
-    /**
-     * Session dan joriy foydalanuvchini olish
-     */
-    private User getCurrentUser(HttpSession session) {
-        return (User) session.getAttribute("currentUser");
-    }
-
-    /**
-     * Tizim ma'lumotlari klassi
-     */
-    public static class SystemInfo {
-        public final String projectName = "Web Security Shield";
-        public final String version = "1.0.0";
-        public final String description = "Web saytlarga bo'ladigan hujumlarga qarshi himoya tizimi";
-        public final String author = "Bitiruv malakaviy ishi";
-        public final String university = "[Universitet nomi]";
-        public final String year = "2025";
-        public final String[] features = {
-                "XSS (Cross-Site Scripting) hujumlaridan himoya",
-                "SQL Injection hujumlaridan himoya",
-                "Rate Limiting (so'rovlar cheklash)",
-                "IP Address bloklash",
-                "Real-time monitoring va logging",
-                "Xavfsizlik hodisalari statistikasi",
-                "Avtomatik threat detection",
-                "Dashboard va reporting"
-        };
-        public final String[] technologies = {
-                "Java 17",
-                "Spring Boot 3.2.0",
-                "Spring Security",
-                "Spring Data JPA",
-                "Thymeleaf",
-                "H2 Database",
-                "Gradle",
-                "Bootstrap 5"
-        };
+    @GetMapping("/test")
+    public String test(Model model) {
+        logger.info("🧪 Dashboard test sahifasi chaqirildi");
+        model.addAttribute("message", "Dashboard controller ishlayapti!");
+        return "dashboard"; // dashboard.html ni render qiladi
     }
 }

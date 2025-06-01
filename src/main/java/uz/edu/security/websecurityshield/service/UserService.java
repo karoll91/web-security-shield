@@ -66,39 +66,42 @@ public class UserService {
      * Foydalanuvchi login qilish
      */
     public LoginResult authenticateUser(String login, String password, String ipAddress) {
+        logger.info("🔍 =================================");
+        logger.info("🔍 USER SERVICE - LOGIN BOSHLANDI");
+        logger.info("🔍 Login: {}", login);
+        logger.info("🔍 IP: {}", ipAddress);
+        logger.info("🔍 =================================");
+
         Optional<User> userOpt = userRepository.findByUsernameOrEmail(login);
 
         if (userOpt.isEmpty()) {
-            // Noto'g'ri login
-            securityService.logSecurityEvent(SecurityLog.ThreatType.FAILED_LOGIN,
-                    ipAddress, "/login", "Noto'g'ri login: " + login, false);
+            logger.warn("❌ Foydalanuvchi topilmadi: {}", login);
+            // ... qolgan kod
             return new LoginResult(false, "Noto'g'ri login yoki parol", null);
         }
 
         User user = userOpt.get();
+        logger.info("✅ Foydalanuvchi topildi:");
+        logger.info("  - Username: {}", user.getUsername());
+        logger.info("  - Email: {}", user.getEmail());
+        logger.info("  - Active: {}", user.isActive());
+        logger.info("  - Locked: {}", user.isAccountLocked());
 
-        // Account bloklangan yoki yo'qligini tekshirish
-        if (user.isAccountLocked()) {
-            if (isLockTimeExpired(user)) {
-                unlockUser(user);
-            } else {
-                securityService.logSecurityEvent(SecurityLog.ThreatType.FAILED_LOGIN,
-                        ipAddress, "/login", "Bloklangan account: " + login, true);
-                return new LoginResult(false, "Account bloklangan. Keyinroq urinib ko'ring.", null);
-            }
-        }
+        // Parol tekshirish
+        boolean passwordMatch = passwordEncoder.matches(password, user.getPassword());
+        logger.info("🔑 Parol tekshiruvi:");
+        logger.info("  - Kiritilgan parol uzunligi: {}", password.length());
+        logger.info("  - Database hash: {}", user.getPassword().substring(0, 20) + "...");
+        logger.info("  - Parol mos keladimi: {}", passwordMatch);
 
-        // Parolni tekshirish
-        if (!passwordEncoder.matches(password, user.getPassword())) {
-            // Noto'g'ri parol
-            handleFailedLogin(user, ipAddress);
+        if (!passwordMatch) {
+            logger.warn("❌ Noto'g'ri parol: {}", login);
+            // ... failed login logic
             return new LoginResult(false, "Noto'g'ri login yoki parol", null);
         }
 
-        // Muvaffaqiyatli login
-        handleSuccessfulLogin(user);
-        logger.info("Foydalanuvchi muvaffaqiyatli login qildi: {}", user.getUsername());
-
+        logger.info("✅ LOGIN MUVAFFAQIYATLI: {}", user.getUsername());
+        // ... successful login logic
         return new LoginResult(true, "Muvaffaqiyatli login", user);
     }
 

@@ -48,19 +48,58 @@ public class SecurityService {
 
     // XSS Pattern lar
     private static final Pattern[] XSS_PATTERNS = {
-            Pattern.compile("<script[^>]*>.*?</script>", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("<iframe[^>]*>.*?</iframe>", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("javascript:", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("on\\w+\\s*=", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("<img[^>]*onerror[^>]*>", Pattern.CASE_INSENSITIVE)
+            // Script tag lar
+            Pattern.compile("<script[^>]*>.*?</script>", Pattern.CASE_INSENSITIVE | Pattern.DOTALL),
+            Pattern.compile("<script[^>]*/>", Pattern.CASE_INSENSITIVE),
+
+            // Iframe va object tag lar
+            Pattern.compile("<iframe[^>]*>.*?</iframe>", Pattern.CASE_INSENSITIVE | Pattern.DOTALL),
+            Pattern.compile("<object[^>]*>.*?</object>", Pattern.CASE_INSENSITIVE | Pattern.DOTALL),
+            Pattern.compile("<embed[^>]*>", Pattern.CASE_INSENSITIVE),
+
+            // JavaScript protocol
+            Pattern.compile("javascript\\s*:", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("vbscript\\s*:", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("data\\s*:.*?base64", Pattern.CASE_INSENSITIVE),
+
+            // Event handlers (faqat HTML context da)
+            Pattern.compile("<[^>]*\\s+on\\w+\\s*=", Pattern.CASE_INSENSITIVE),
+
+            // Dangerous img tags
+            Pattern.compile("<img[^>]*\\s+onerror\\s*=", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("<img[^>]*\\s+onload\\s*=", Pattern.CASE_INSENSITIVE),
+
+            // CSS expression
+            Pattern.compile("expression\\s*\\(", Pattern.CASE_INSENSITIVE),
+
+            // HTML entities that could be XSS
+            Pattern.compile("&#x?\\d+;.*?<script", Pattern.CASE_INSENSITIVE),
+
+            // Meta refresh
+            Pattern.compile("<meta[^>]*http-equiv[^>]*refresh", Pattern.CASE_INSENSITIVE)
     };
+
 
     // SQL Injection Pattern lar
     private static final Pattern[] SQL_INJECTION_PATTERNS = {
-            Pattern.compile("('|(\\-\\-)|(;)|(\\|)|(\\*)|(%))", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("(union|select|insert|delete|update|drop|create|alter)", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("(exec|execute|sp_|xp_)", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("(script|vbscript)", Pattern.CASE_INSENSITIVE)
+            // SQL Injection combinations - aniqroq pattern lar
+            Pattern.compile("('\\s*(or|and)\\s*')", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("('\\s*(or|and)\\s*\\d+\\s*=\\s*\\d+)", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("(union\\s+select)", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("(insert\\s+into)", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("(delete\\s+from)", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("(update\\s+set)", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("(drop\\s+table)", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("(alter\\s+table)", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("(exec\\s*\\()", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("(script.*?src)", Pattern.CASE_INSENSITIVE),
+            // Xavfli SQL funksiyalar
+            Pattern.compile("(waitfor\\s+delay)", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("(benchmark\\s*\\()", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("(sleep\\s*\\()", Pattern.CASE_INSENSITIVE),
+            // SQL comment injection
+            Pattern.compile("(/\\*.*?\\*/)", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("(--\\s+)", Pattern.CASE_INSENSITIVE)
     };
 
     /**
@@ -71,15 +110,70 @@ public class SecurityService {
             return false;
         }
 
+        // Static file lar uchun tekshirmaslik
+        if (isStaticResource(input)) {
+            return false;
+        }
+
+        // User-Agent kabi header lar uchun alohida tekshiruv
+        if (isUserAgentHeader(input)) {
+            return checkUserAgentXSS(input);
+        }
+
+        // URL encoded va oddiy maxsus belgilarni tekshirish
+        String decodedInput = input;
+        try {
+            decodedInput = java.net.URLDecoder.decode(input, "UTF-8");
+        } catch (Exception e) {
+            // URL decode qila olmasa, asl input ni ishlatamiz
+        }
+
+        // HTML context da XSS tekshirish
         for (Pattern pattern : XSS_PATTERNS) {
-            if (pattern.matcher(input).find()) {
-                logger.warn("XSS hujumi aniqlandi: {}", input);
+            if (pattern.matcher(decodedInput).find()) {
+                logger.warn("XSS pattern aniqlandi: {} - input: {}", pattern.pattern(),
+                        input.length() > 100 ? input.substring(0, 100) + "..." : input);
                 return true;
             }
         }
+
         return false;
     }
 
+    private boolean isUserAgentHeader(String input) {
+        if (input == null) return false;
+
+        // Oddiy browser User-Agent pattern lari
+        String lowerInput = input.toLowerCase();
+        return lowerInput.contains("mozilla") ||
+                lowerInput.contains("chrome") ||
+                lowerInput.contains("safari") ||
+                lowerInput.contains("firefox") ||
+                lowerInput.contains("edge") ||
+                lowerInput.contains("webkit");
+    }
+
+    /**
+     * User-Agent da XSS tekshirish (kamroq qattiq)
+     */
+    private boolean checkUserAgentXSS(String userAgent) {
+        if (userAgent == null) return false;
+
+        // Faqat aniq XSS pattern larni tekshirish
+        String[] dangerousInUserAgent = {
+                "<script", "</script>", "javascript:", "vbscript:",
+                "onload=", "onerror=", "onclick=", "<iframe"
+        };
+
+        String lowerUserAgent = userAgent.toLowerCase();
+        for (String dangerous : dangerousInUserAgent) {
+            if (lowerUserAgent.contains(dangerous)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
     /**
      * SQL Injection hujumini aniqlash
      */
@@ -88,15 +182,56 @@ public class SecurityService {
             return false;
         }
 
+        // URL encoded va oddiy maxsus belgilarni tekshirish
+        String decodedInput = input;
+        try {
+            decodedInput = java.net.URLDecoder.decode(input, "UTF-8");
+        } catch (Exception e) {
+            // URL decode qila olmasa, asl input ni ishlatamiz
+        }
+
+        // Qisqa input lar uchun tekshirmaslik (masalan, favicon.ico)
+        if (input.length() < 10 && !input.contains("'") && !input.contains("\"")) {
+            return false;
+        }
+
+        // Static file lar uchun tekshirmaslik
+        if (isStaticResource(input)) {
+            return false;
+        }
+
+        // Pattern larni tekshirish
         for (Pattern pattern : SQL_INJECTION_PATTERNS) {
-            if (pattern.matcher(input).find()) {
-                logger.warn("SQL Injection hujumi aniqlandi: {}", input);
+            if (pattern.matcher(decodedInput).find()) {
+                logger.warn("SQL Injection pattern aniqlandi: {} - input: {}", pattern.pattern(), input);
                 return true;
             }
         }
+
         return false;
     }
 
+    /**
+     * Static file ekanligini tekshirish
+     */
+    private boolean isStaticResource(String input) {
+        if (input == null) return false;
+
+        String lowerInput = input.toLowerCase();
+        String[] staticExtensions = {
+                ".css", ".js", ".png", ".jpg", ".jpeg", ".gif",
+                ".ico", ".svg", ".woff", ".woff2", ".ttf", ".eot",
+                "favicon.ico", "/static/", "/css/", "/js/", "/images/"
+        };
+
+        for (String ext : staticExtensions) {
+            if (lowerInput.contains(ext)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
     /**
      * Rate Limiting tekshirish
      */

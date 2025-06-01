@@ -130,16 +130,16 @@ public class SecurityConfig {
                 );
 
         // Custom filterlarni conditional qo'shish
-        if (rateLimitFilter != null) {
-            http.addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class);
+        if (sqlInjectionFilter != null) {
+            http.addFilterBefore(sqlInjectionFilter, UsernamePasswordAuthenticationFilter.class);
         }
 
         if (xssProtectionFilter != null) {
-            http.addFilterBefore(xssProtectionFilter, UsernamePasswordAuthenticationFilter.class);
+            http.addFilterAfter(xssProtectionFilter, SQLInjectionFilter.class);
         }
 
-        if (sqlInjectionFilter != null) {
-            http.addFilterBefore(sqlInjectionFilter, UsernamePasswordAuthenticationFilter.class);
+        if (rateLimitFilter != null) {
+            http.addFilterBefore(rateLimitFilter, SQLInjectionFilter.class);
         }
 
         return http.build();

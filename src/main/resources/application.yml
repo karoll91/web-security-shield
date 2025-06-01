@@ -52,18 +52,37 @@ security:
   xss-protection:
     enabled: true
     block-mode: true
+    check-user-agent: false  # User-Agent tekshiruvini o'chirish
+    whitelist-paths:
+      - "/favicon.ico"
+      - "/h2-console"
+      - "/static/"
+      - "/css/"
+      - "/js/"
+      - "/images/"
+      - "/actuator/"
 
   # SQL Injection himoya sozlamalari
   sql-injection:
     enabled: true
     strict-mode: false
+    whitelist-paths:
+      - "/favicon.ico"
+      - "/h2-console"
+      - "/static/"
+      - "/css/"
+      - "/js/"
+      - "/images/"
+      - "/actuator/"
 
 # Logging sozlamalari
 logging:
   level:
     uz.edu.security: DEBUG
+    uz.edu.security.websecurityshield.config: DEBUG
     org.springframework.security: INFO
     org.springframework.web: INFO
+    org.springframework.boot.CommandLineRunner: DEBUG
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
   file:

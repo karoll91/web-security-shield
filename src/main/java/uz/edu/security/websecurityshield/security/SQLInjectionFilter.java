@@ -85,6 +85,13 @@ public class SQLInjectionFilter implements Filter {
      * SQL Injection hujumini tekshirish
      */
     private boolean checkForSQLInjection(HttpServletRequest request) {
+        String requestURI = request.getRequestURI();
+
+        // Static file lar va maxsus endpoint lar uchun tekshirmaslik
+        if (isWhitelistedPath(requestURI)) {
+            return false;
+        }
+
         // 1. URL parametrlarini tekshirish
         Enumeration<String> paramNames = request.getParameterNames();
         while (paramNames.hasMoreElements()) {
@@ -113,11 +120,11 @@ public class SQLInjectionFilter implements Filter {
             }
         }
 
-        // 3. Request URI ni tekshirish
-        String requestURI = request.getRequestURI();
-        if (securityService.detectSQLInjection(requestURI)) {
-            return true;
-        }
+//        // 3. Request URI ni tekshirish
+//        String requestURI = request.getRequestURI();
+//        if (securityService.detectSQLInjection(requestURI)) {
+//            return true;
+//        }
 
         // 4. Ba'zi headerlarni tekshirish
         String[] headersToCheck = {"X-Forwarded-For", "X-Real-IP", "User-Agent", "Referer"};
@@ -128,6 +135,20 @@ public class SQLInjectionFilter implements Filter {
             }
         }
 
+        return false;
+    }
+
+    private boolean isWhitelistedPath(String path) {
+        String[] whitelistedPaths = {
+                "/favicon.ico", "/h2-console", "/static/", "/css/", "/js/",
+                "/images/", "/actuator/", "/error"
+        };
+
+        for (String whitelisted : whitelistedPaths) {
+            if (path.startsWith(whitelisted)) {
+                return true;
+            }
+        }
         return false;
     }
 

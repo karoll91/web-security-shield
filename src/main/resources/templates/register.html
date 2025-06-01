@@ -1,10 +1,497 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="uz" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ro'yxatdan O'tish - Web Security Shield</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+        }
+
+        .register-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .security-icon {
+            font-size: 4rem;
+            color: #667eea;
+            margin-bottom: 1rem;
+        }
+
+        .btn-register {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 25px;
+            padding: 12px 30px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-register:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .form-control {
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+            padding: 12px 15px;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+
+        .form-control.is-invalid {
+            border-color: #dc3545;
+        }
+
+        .form-control.is-valid {
+            border-color: #198754;
+        }
+
+        .alert {
+            border-radius: 10px;
+            border: none;
+        }
+
+        .password-strength {
+            margin-top: 0.5rem;
+        }
+
+        .password-strength .progress {
+            height: 4px;
+            border-radius: 2px;
+        }
+
+        .strength-text {
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
+
+        .input-group-text {
+            border-radius: 0 10px 10px 0;
+            border: 2px solid #e9ecef;
+            border-left: none;
+            background: #f8f9fa;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-6 col-md-8">
+            <div class="register-container p-5">
+                <!-- Header -->
+                <div class="text-center mb-4">
+                    <i class="bi bi-shield-plus security-icon"></i>
+                    <h2 class="fw-bold text-dark">Ro'yxatdan O'tish</h2>
+                    <p class="text-muted">Xavfsizlik tizimiga qo'shiling</p>
+                </div>
 
+                <!-- Xabarlar -->
+                <div th:if="${errorMessage}" class="alert alert-danger" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    <span th:text="${errorMessage}">Xato xabari</span>
+                </div>
+
+                <div th:if="${successMessage}" class="alert alert-success" role="alert">
+                    <i class="bi bi-check-circle-fill me-2"></i>
+                    <span th:text="${successMessage}">Muvaffaqiyat xabari</span>
+                </div>
+
+                <!-- Register Form -->
+                <form th:action="@{/register}" method="post" th:object="${registerForm}" id="registerForm">
+                    <div class="row">
+                        <div class="col-12 mb-3">
+                            <label for="username" class="form-label fw-semibold">
+                                <i class="bi bi-person-fill me-2"></i>Foydalanuvchi nomi
+                            </label>
+                            <input type="text"
+                                   class="form-control"
+                                   id="username"
+                                   th:field="*{username}"
+                                   placeholder="Username kiriting"
+                                   minlength="3"
+                                   maxlength="20"
+                                   required>
+                            <div class="invalid-feedback" id="usernameError"></div>
+                            <div class="form-text">3-20 ta belgi, faqat harflar va raqamlar</div>
+                        </div>
+
+                        <div class="col-12 mb-3">
+                            <label for="email" class="form-label fw-semibold">
+                                <i class="bi bi-envelope-fill me-2"></i>Email manzil
+                            </label>
+                            <input type="email"
+                                   class="form-control"
+                                   id="email"
+                                   th:field="*{email}"
+                                   placeholder="email@example.com"
+                                   required>
+                            <div class="invalid-feedback" id="emailError"></div>
+                        </div>
+
+                        <div class="col-12 mb-3">
+                            <label for="password" class="form-label fw-semibold">
+                                <i class="bi bi-lock-fill me-2"></i>Parol
+                            </label>
+                            <div class="input-group">
+                                <input type="password"
+                                       class="form-control"
+                                       id="password"
+                                       th:field="*{password}"
+                                       placeholder="Parolni kiriting"
+                                       minlength="6"
+                                       required>
+                                <span class="input-group-text" onclick="togglePassword('password')">
+                                        <i class="bi bi-eye" id="passwordToggle"></i>
+                                    </span>
+                            </div>
+                            <div class="invalid-feedback" id="passwordError"></div>
+
+                            <!-- Password Strength Indicator -->
+                            <div class="password-strength">
+                                <div class="progress">
+                                    <div class="progress-bar" id="passwordStrengthBar"
+                                         role="progressbar" style="width: 0%"></div>
+                                </div>
+                                <div class="strength-text" id="passwordStrengthText"></div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 mb-4">
+                            <label for="confirmPassword" class="form-label fw-semibold">
+                                <i class="bi bi-lock-check-fill me-2"></i>Parolni tasdiqlang
+                            </label>
+                            <div class="input-group">
+                                <input type="password"
+                                       class="form-control"
+                                       id="confirmPassword"
+                                       th:field="*{confirmPassword}"
+                                       placeholder="Parolni qayta kiriting"
+                                       required>
+                                <span class="input-group-text" onclick="togglePassword('confirmPassword')">
+                                        <i class="bi bi-eye" id="confirmPasswordToggle"></i>
+                                    </span>
+                            </div>
+                            <div class="invalid-feedback" id="confirmPasswordError"></div>
+                        </div>
+                    </div>
+
+                    <!-- Terms and Conditions -->
+                    <div class="form-check mb-4">
+                        <input class="form-check-input" type="checkbox" id="agreeTerms" required>
+                        <label class="form-check-label" for="agreeTerms">
+                            <strong>Shartlar va qoidalarga rozilik bildiraman</strong>
+                            <br><small class="text-muted">
+                            Ro'yxatdan o'tish orqali siz tizim qoidalariga rozilik bildirasiz
+                        </small>
+                        </label>
+                    </div>
+
+                    <div class="d-grid gap-2 mb-3">
+                        <button type="submit" class="btn btn-primary btn-register" id="submitBtn">
+                            <i class="bi bi-person-plus me-2"></i>Ro'yxatdan O'tish
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Login Link -->
+                <div class="text-center">
+                    <p class="text-muted mb-0">
+                        Hisobingiz bormi?
+                        <a th:href="@{/login}" class="text-decoration-none fw-semibold">
+                            Kirish
+                        </a>
+                    </p>
+                </div>
+
+                <!-- Security Requirements -->
+                <div class="mt-4 p-3" style="background: rgba(102, 126, 234, 0.1); border-radius: 10px;">
+                    <h6 class="fw-bold mb-3 text-center">
+                        <i class="bi bi-shield-fill-check me-2"></i>Parol talablari
+                    </h6>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <small class="text-muted" id="req1">
+                                <i class="bi bi-circle text-secondary me-1"></i>
+                                Kamida 6 ta belgi
+                            </small>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted" id="req2">
+                                <i class="bi bi-circle text-secondary me-1"></i>
+                                Katta harf
+                            </small>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted" id="req3">
+                                <i class="bi bi-circle text-secondary me-1"></i>
+                                Kichik harf
+                            </small>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted" id="req4">
+                                <i class="bi bi-circle text-secondary me-1"></i>
+                                Raqam
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Footer -->
+<div class="position-fixed bottom-0 start-0 p-3">
+    <small class="text-white-50">
+        <i class="bi bi-code-slash me-1"></i>
+        Web Security Shield - 2025
+    </small>
+</div>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    // Real-time validation
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('registerForm');
+        const usernameInput = document.getElementById('username');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const confirmPasswordInput = document.getElementById('confirmPassword');
+        const submitBtn = document.getElementById('submitBtn');
+
+        // Username validation
+        usernameInput.addEventListener('input', function() {
+            validateUsername();
+        });
+
+        // Email validation
+        emailInput.addEventListener('input', function() {
+            validateEmail();
+        });
+
+        // Password validation
+        passwordInput.addEventListener('input', function() {
+            validatePassword();
+            checkPasswordMatch();
+            updatePasswordStrength();
+        });
+
+        // Confirm password validation
+        confirmPasswordInput.addEventListener('input', function() {
+            checkPasswordMatch();
+        });
+
+        // Form submission
+        form.addEventListener('submit', function(e) {
+            if (!validateForm()) {
+                e.preventDefault();
+                return false;
+            }
+
+            // Show loading state
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Ro\'yxatdan o\'tkazilmoqda...';
+            submitBtn.disabled = true;
+        });
+
+        function validateUsername() {
+            const username = usernameInput.value.trim();
+            const usernameError = document.getElementById('usernameError');
+
+            if (username.length < 3) {
+                setInvalid(usernameInput, usernameError, 'Username kamida 3 ta belgi bo\'lishi kerak');
+                return false;
+            } else if (username.length > 20) {
+                setInvalid(usernameInput, usernameError, 'Username 20 ta belgidan oshmasligi kerak');
+                return false;
+            } else if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+                setInvalid(usernameInput, usernameError, 'Faqat harflar, raqamlar va _ belgisi ruxsat etilgan');
+                return false;
+            } else {
+                setValid(usernameInput, usernameError);
+                return true;
+            }
+        }
+
+        function validateEmail() {
+            const email = emailInput.value.trim();
+            const emailError = document.getElementById('emailError');
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+            if (!emailRegex.test(email)) {
+                setInvalid(emailInput, emailError, 'Noto\'g\'ri email format');
+                return false;
+            } else {
+                setValid(emailInput, emailError);
+                return true;
+            }
+        }
+
+        function validatePassword() {
+            const password = passwordInput.value;
+            const passwordError = document.getElementById('passwordError');
+
+            if (password.length < 6) {
+                setInvalid(passwordInput, passwordError, 'Parol kamida 6 ta belgi bo\'lishi kerak');
+                return false;
+            } else {
+                setValid(passwordInput, passwordError);
+                return true;
+            }
+        }
+
+        function checkPasswordMatch() {
+            const password = passwordInput.value;
+            const confirmPassword = confirmPasswordInput.value;
+            const confirmPasswordError = document.getElementById('confirmPasswordError');
+
+            if (confirmPassword && password !== confirmPassword) {
+                setInvalid(confirmPasswordInput, confirmPasswordError, 'Parollar mos kelmaydi');
+                return false;
+            } else if (confirmPassword) {
+                setValid(confirmPasswordInput, confirmPasswordError);
+                return true;
+            }
+            return true;
+        }
+
+        function updatePasswordStrength() {
+            const password = passwordInput.value;
+            const strengthBar = document.getElementById('passwordStrengthBar');
+            const strengthText = document.getElementById('passwordStrengthText');
+
+            let strength = 0;
+            let strengthLabel = '';
+            let color = '';
+
+            // Check requirements
+            const req1 = document.getElementById('req1');
+            const req2 = document.getElementById('req2');
+            const req3 = document.getElementById('req3');
+            const req4 = document.getElementById('req4');
+
+            // Length check
+            if (password.length >= 6) {
+                strength += 25;
+                updateRequirement(req1, true);
+            } else {
+                updateRequirement(req1, false);
+            }
+
+            // Uppercase check
+            if (/[A-Z]/.test(password)) {
+                strength += 25;
+                updateRequirement(req2, true);
+            } else {
+                updateRequirement(req2, false);
+            }
+
+            // Lowercase check
+            if (/[a-z]/.test(password)) {
+                strength += 25;
+                updateRequirement(req3, true);
+            } else {
+                updateRequirement(req3, false);
+            }
+
+            // Number check
+            if (/[0-9]/.test(password)) {
+                strength += 25;
+                updateRequirement(req4, true);
+            } else {
+                updateRequirement(req4, false);
+            }
+
+            // Set strength label and color
+            if (strength < 50) {
+                strengthLabel = 'Zaif';
+                color = 'bg-danger';
+            } else if (strength < 75) {
+                strengthLabel = 'O\'rtacha';
+                color = 'bg-warning';
+            } else if (strength < 100) {
+                strengthLabel = 'Yaxshi';
+                color = 'bg-info';
+            } else {
+                strengthLabel = 'Kuchli';
+                color = 'bg-success';
+            }
+
+            strengthBar.style.width = strength + '%';
+            strengthBar.className = 'progress-bar ' + color;
+            strengthText.textContent = strengthLabel;
+            strengthText.className = 'strength-text text-' + color.replace('bg-', '');
+        }
+
+        function updateRequirement(element, met) {
+            const icon = element.querySelector('i');
+            if (met) {
+                icon.className = 'bi bi-check-circle-fill text-success me-1';
+            } else {
+                icon.className = 'bi bi-circle text-secondary me-1';
+            }
+        }
+
+        function setValid(input, errorElement) {
+            input.classList.remove('is-invalid');
+            input.classList.add('is-valid');
+            errorElement.textContent = '';
+        }
+
+        function setInvalid(input, errorElement, message) {
+            input.classList.remove('is-valid');
+            input.classList.add('is-invalid');
+            errorElement.textContent = message;
+        }
+
+        function validateForm() {
+            return validateUsername() &&
+                validateEmail() &&
+                validatePassword() &&
+                checkPasswordMatch() &&
+                document.getElementById('agreeTerms').checked;
+        }
+    });
+
+    // Toggle password visibility
+    function togglePassword(inputId) {
+        const input = document.getElementById(inputId);
+        const toggle = document.getElementById(inputId + 'Toggle');
+
+        if (input.type === 'password') {
+            input.type = 'text';
+            toggle.className = 'bi bi-eye-slash';
+        } else {
+            input.type = 'password';
+            toggle.className = 'bi bi-eye';
+        }
+    }
+
+    // Prevent form resubmission
+    if (window.history.replaceState) {
+        window.history.replaceState(null, null, window.location.href);
+    }
+</script>
 </body>
 </html>

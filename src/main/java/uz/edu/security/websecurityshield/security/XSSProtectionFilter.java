@@ -86,6 +86,13 @@ public class XSSProtectionFilter implements Filter {
      * XSS hujumini tekshirish
      */
     private boolean checkForXSS(HttpServletRequest request) {
+        String requestURI = request.getRequestURI();
+
+        // Static file lar va maxsus endpoint lar uchun tekshirmaslik
+        if (isWhitelistedPath(requestURI)) {
+            return false;
+        }
+
         // 1. URL parametrlarini tekshirish
         Enumeration<String> paramNames = request.getParameterNames();
         while (paramNames.hasMoreElements()) {
@@ -101,27 +108,67 @@ public class XSSProtectionFilter implements Filter {
             }
         }
 
-        // 2. Header larni tekshirish
-        Enumeration<String> headerNames = request.getHeaderNames();
-        while (headerNames.hasMoreElements()) {
-            String headerName = headerNames.nextElement();
+        // 2. Faqat ba'zi muhim headerlarni tekshirish (User-Agent ni cheklash)
+        String[] headersToCheck = {"X-Forwarded-For", "X-Real-IP", "Referer"};
+        for (String headerName : headersToCheck) {
             String headerValue = request.getHeader(headerName);
-
-            if (securityService.detectXSS(headerValue)) {
+            if (headerValue != null && securityService.detectXSS(headerValue)) {
                 return true;
             }
         }
 
-        // 3. User-Agent ni tekshirish
+        // 3. User-Agent ni alohida tekshirish (kamroq qattiq)
         String userAgent = request.getHeader("User-Agent");
-        if (userAgent != null && securityService.detectXSS(userAgent)) {
+        if (userAgent != null && isDangerousUserAgent(userAgent)) {
             return true;
         }
 
-        // 4. Referer ni tekshirish
-        String referer = request.getHeader("Referer");
-        if (referer != null && securityService.detectXSS(referer)) {
-            return true;
+        // 4. Request body ni tekshirish (agar mavjud bo'lsa)
+        if ("POST".equalsIgnoreCase(request.getMethod()) ||
+                "PUT".equalsIgnoreCase(request.getMethod())) {
+            // Body content tekshirish (ixtiyoriy)
+            // Bu qism alohida implement qilish mumkin
+        }
+
+        return false;
+    }
+    /**
+     * Whitelist path lar
+     */
+    private boolean isWhitelistedPath(String path) {
+        if (path == null) return false;
+
+        String[] whitelistedPaths = {
+                "/favicon.ico", "/h2-console", "/static/", "/css/", "/js/",
+                "/images/", "/actuator/", "/error", "/webjars/"
+        };
+
+        for (String whitelisted : whitelistedPaths) {
+            if (path.startsWith(whitelisted)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Xavfli User-Agent tekshirish
+     */
+    private boolean isDangerousUserAgent(String userAgent) {
+        if (userAgent == null) return false;
+
+        // Faqat aniq xavfli pattern lar
+        String lowerUserAgent = userAgent.toLowerCase();
+        String[] dangerousPatterns = {
+                "<script", "</script>", "javascript:", "vbscript:",
+                "<iframe", "</iframe>", "onload=", "onerror=",
+                "document.cookie", "eval(", "alert("
+        };
+
+        for (String pattern : dangerousPatterns) {
+            if (lowerUserAgent.contains(pattern)) {
+                return true;
+            }
         }
 
         return false;
